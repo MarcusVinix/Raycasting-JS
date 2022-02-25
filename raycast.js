@@ -13,18 +13,24 @@ const NUM_RAYS = WINDOW_WIDTH / WALL_STRIP_WIDTH;
 // Used to lower or increase the size of thins to be printed
 const MINIMAP_SCALE_FACTOR = 0.2;
 
+// colors
+const RED = [255, 1, 1];
+const GREEN = [1, 255, 1];
+const BLUE = [1, 1, 255];
+const WHITE = [255, 255, 255];
+
 class Map {
     constructor() {
         this.grid = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-            [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+            [1, 3, 3, 3, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 2, 2, 0, 1],
+            [1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+            [1, 2, 2, 3, 2, 2, 0, 0, 0, 1, 1, 1, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         ];
@@ -44,7 +50,7 @@ class Map {
             {
                 var tileX = j * TILE_SIZE;
                 var tileY = i * TILE_SIZE;
-                var tileColor = this.grid[i][j] == 1 ? "#222" : "#fff";
+                var tileColor = this.grid[i][j] != 0 ? "#222" : "#fff";
                 stroke("#222");
                 fill(tileColor);
                 rect(
@@ -111,6 +117,8 @@ class Ray {
 
         this.isRayFacingRight = this.rayAngle < 0.5 * Math.PI || this.rayAngle > 1.5 * Math.PI;
         this.isRayFacingLeft = !this.isRayFacingRight;
+
+        this.wallColor = WHITE;
     }
     cast () {
         var xintercept, yintercept;
@@ -218,6 +226,28 @@ class Ray {
             this.distance = horzHitDistance;
             this.wasHitVertifical = false;
         }
+
+
+        // Change the color of the wall
+        var mapGridIndexX = 0;
+        var mapGridIndexY = 0;
+        if (this.wasHitVertifical)
+        {
+            mapGridIndexX = Math.floor((this.WallHitX - (this.isRayFacingLeft ? 1 : 0))  / TILE_SIZE);
+            mapGridIndexY = Math.floor((this.WallHitY)  / TILE_SIZE);
+        }
+        else {
+            mapGridIndexX = Math.floor((this.WallHitX)  / TILE_SIZE);
+            mapGridIndexY = Math.floor((this.WallHitY - (this.isRayFacingUp ? 1 : 0))  / TILE_SIZE);
+        }
+        if (grid.grid[mapGridIndexY][mapGridIndexX] == 1)
+            this.wallColor = WHITE;
+        else if (grid.grid[mapGridIndexY][mapGridIndexX] == 2)
+            this.wallColor = RED;
+        else if (grid.grid[mapGridIndexY][mapGridIndexX] == 3)
+            this.wallColor = GREEN;
+        else if (grid.grid[mapGridIndexY][mapGridIndexX] == 4)
+            this.wallColor = BLUE;
     }
     render () {
         stroke("rgba(255, 0, 0, 0.3)");
@@ -291,10 +321,22 @@ function render3DProjectedWalls() {
         // Compute the transparency based on the wall distance.
         var alpha =  1.0;//70 / correctWallDistance;
 
-        var color = ray.wasHitVertifical ? 255 : 180;
-
+        // Change the color to effect of black
+        var colors = [];
+        for (var f = 0; f < 3; f++)
+        {
+            if (ray.wasHitVertifical == true)
+            {
+                colors.push(ray.wallColor[f]);
+            } else {
+                if (ray.wallColor[f] > 1)
+                    colors.push(Math.floor(ray.wallColor[f] / 2) + 30);
+                else
+                    colors.push(ray.wallColor[f]);
+            }
+        }
         // Render a rectangle with the calculated wall height
-        fill("rgba(" + color + "," + color + "," + color + "," + alpha + ")");
+        fill("rgba(" + String(colors[0]) + "," + String(colors[1]) + "," + String(colors[2]) + "," + alpha + ")");
         noStroke();
         rect(
             i * WALL_STRIP_WIDTH,
